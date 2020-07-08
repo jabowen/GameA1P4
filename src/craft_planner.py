@@ -123,6 +123,24 @@ def search(graph, state, is_goal, limit, heuristic):
     print(time() - start_time, 'seconds.')
     print("Failed to find a path from", state, 'within time limit.')
     return None
+    
+def makePosIngred(goal,rules):
+    changed = False
+    for item in goal:
+        for rule in rules:
+            if(item in rule['Produces']):
+                if('Consumes' in rule.keys()):
+                    for item2 in rule['Consumes'].keys():
+                        if (not(item2 in goal)):
+                            goal.append(item2)
+                            changed = True
+                if('Requires' in rule.keys()):
+                    for item2 in rule['Requires'].keys():
+                        if (not(item2 in goal)):
+                            goal.append(item2)
+                            changed = True
+    return goal
+    
 
 if __name__ == '__main__':
     with open('Crafting.json') as f:
@@ -142,14 +160,17 @@ if __name__ == '__main__':
 
     # Build rules
     all_recipes = []
+    rules = []
     for name, rule in Crafting['Recipes'].items():
         checker = make_checker(rule)
         effector = make_effector(rule)
         recipe = Recipe(name, checker, effector, rule['Time'])
         all_recipes.append(recipe)
+        rules.append(rule)
         
 
     # Create a function which checks for the goal
+    goal = Crafting['Goal']
     is_goal = make_goal_checker(Crafting['Goal'])
     
 
@@ -157,8 +178,7 @@ if __name__ == '__main__':
     # Initialize first state from initial inventory
     state = State({key: 0 for key in Crafting['Items']})
     state.update(Crafting['Initial'])
-    graph = graph(state)
-    print(graph)
+    posIngred=makePosIngred(list(goal.keys()),rules)
     
     # Search for a solution
     resulting_plan = search(graph, state, is_goal, 5, heuristic)
@@ -168,3 +188,7 @@ if __name__ == '__main__':
         for state, action in resulting_plan:
             print('\t',state)
             print(action)
+
+
+
+    
