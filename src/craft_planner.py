@@ -4,6 +4,8 @@ from timeit import default_timer as time
 
 Recipe = namedtuple('Recipe', ['name', 'check', 'effect', 'cost'])
 
+posIngred = {}
+
 
 class State(OrderedDict):
     """ This class is a thin wrapper around an OrderedDict, which is simply a dictionary which keeps the order in
@@ -65,15 +67,14 @@ def make_effector(rule):
     def effect(state):
         # This code is called by graph(state) and runs millions of times
         # Tip: Do something with rule['Produces'] and rule['Consumes'].
-
+        next_state = State.copy(state)
         for item in rule['Produces']:
-            if(item in state.keys()):
-                state[item] = state[item] + rule['Produces'][item]
+            if(item in next_state.keys()):
+                next_state[item] = next_state[item] + rule['Produces'][item]
         if('Consumes' in rule.keys()):
             for item in rule['Consumes']:
-                if(item in state.keys()):
-                    state[item] = state[item] - rule['Consumes'][item]
-        next_state=state    
+                if(item in next_state.keys()):
+                    next_state[item] = next_state[item] - rule['Consumes'][item]
         if(next_state==None):
             print("cant do that")
         return next_state
@@ -106,6 +107,11 @@ def graph(state):
 
 def heuristic(state):
     # Implement your heuristic here!
+    for item in state:
+        if(state[item]==0):
+            continue
+        if ((not(item in posIngred)) or (state[item]>posIngred[item])):
+            return -1
     return 0
 
 def search(graph, state, is_goal, limit, heuristic):
@@ -116,29 +122,72 @@ def search(graph, state, is_goal, limit, heuristic):
     # When you find a path to the goal return a list of tuples [(state, action)]
     # representing the path. Each element (tuple) of the list represents a state
     # in the path and the action that took you to this state
-    while time() - start_time < limit:
-        pass
-
+    path = []
+    notDone = True
+    queue = [(state,heuristic(state),0)]
+    visited = {state: (None,0,'None')}
+    while ((time() - start_time < limit) and (len(queue)>0) and notDone):
+        current = queue[0][0]
+        currentCost = queue[0][2]
+        queue.remove(queue[0])
+        for node in graph(current):
+            newCost = currentCost+node[2] 
+            if(is_goal(node[1])):
+                visited[node[1]] = (current,newCost,node[0])
+                current = node[1]
+                print(currentCost, 'was cost')
+                notDone = False
+                break
+            elif(not (node in visited)):
+                visited[node[1]] = (current,newCost,node[0])
+                heur = heuristic(node[1])
+                #print(node)
+                #print(heur)
+                if(heur >= 0):
+                    queue.append((node[1],heur,newCost))
+            elif(newCost<visited[node[1]][1]):
+                visited[node[1]] = (current,newCost,node[0])   
+            queue.sort(reverse=True,key=byVal)
+                
+           
+        
+    if(not notDone):
+        while (visited[current][0]!=None):
+            path.append((current,visited[current][2]))
+            current = visited[current][0]
+        path.reverse()
+        print(time() - start_time, 'seconds.')
+        print(len(path), "is length")
+        return path
+        
     # Failed to find a path
     print(time() - start_time, 'seconds.')
     print("Failed to find a path from", state, 'within time limit.')
     return None
     
+    
+def byVal(e):
+    return e[2]
+    
 def makePosIngred(goal,rules):
-    changed = False
-    for item in goal:
+    listGoal = list(goal.keys())
+    for item in listGoal:
         for rule in rules:
             if(item in rule['Produces']):
                 if('Consumes' in rule.keys()):
                     for item2 in rule['Consumes'].keys():
                         if (not(item2 in goal)):
-                            goal.append(item2)
-                            changed = True
+                            goal[item2] = rule['Consumes'][item2]*goal[item]
+                            listGoal.append(item2)
+                        else:
+                            goal[item2] = goal[item2]+rule['Consumes'][item2]*goal[item]
                 if('Requires' in rule.keys()):
                     for item2 in rule['Requires'].keys():
                         if (not(item2 in goal)):
-                            goal.append(item2)
-                            changed = True
+                            goal[item2] = rule['Requires'][item2]
+                            listGoal.append(item2)
+    print(goal)
+    print("\n\n")
     return goal
     
 
@@ -170,7 +219,7 @@ if __name__ == '__main__':
         
 
     # Create a function which checks for the goal
-    goal = Crafting['Goal']
+    goal=(Crafting['Goal'])
     is_goal = make_goal_checker(Crafting['Goal'])
     
 
@@ -178,10 +227,10 @@ if __name__ == '__main__':
     # Initialize first state from initial inventory
     state = State({key: 0 for key in Crafting['Items']})
     state.update(Crafting['Initial'])
-    posIngred=makePosIngred(list(goal.keys()),rules)
+    posIngred.update(makePosIngred(goal.copy(),rules))
     
     # Search for a solution
-    resulting_plan = search(graph, state, is_goal, 5, heuristic)
+    resulting_plan = search(graph, state, is_goal, 30, heuristic)
 
     if resulting_plan:
         # Print resulting plan
