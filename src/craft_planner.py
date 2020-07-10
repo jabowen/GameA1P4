@@ -138,7 +138,7 @@ def search(graph, state, is_goal, limit, heuristic):
                 print(currentCost, 'was cost')
                 notDone = False
                 break
-            elif(not (node[1] in visited)):
+            elif(not (node in visited)):
                 visited[node[1]] = (current,newCost,node[0])
                 heur = heuristic(node[1])
                 #print(node)
