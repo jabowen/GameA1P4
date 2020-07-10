@@ -13,7 +13,6 @@ class State(OrderedDict):
         for hashing, should you need to use a state as a key in another dictionary, e.g. distance[state] = 5. By
         default, dictionaries are not hashable. Additionally, when the state is converted to a string, it removes
         all items with quantity 0.
-
         Use of this state representation is optional, should you prefer another.
     """
 
@@ -126,6 +125,7 @@ def search(graph, state, is_goal, limit, heuristic):
     notDone = True
     queue = [(state,heuristic(state),0)]
     visited = {state: (None,0,'None')}
+    total = 0
     while ((time() - start_time < limit) and (len(queue)>0) and notDone):
         current = queue[0][0]
         currentCost = queue[0][2]
@@ -138,7 +138,8 @@ def search(graph, state, is_goal, limit, heuristic):
                 print(currentCost, 'was cost')
                 notDone = False
                 break
-            elif(not (node in visited)):
+            elif(not (node[1] in visited)):
+                total = total+1
                 visited[node[1]] = (current,newCost,node[0])
                 heur = heuristic(node[1])
                 #print(node)
@@ -150,7 +151,7 @@ def search(graph, state, is_goal, limit, heuristic):
             queue.sort(reverse=True,key=byVal)
                 
            
-        
+    print(total)    
     if(not notDone):
         while (visited[current][0]!=None):
             path.append((current,visited[current][2]))
@@ -235,7 +236,3 @@ if __name__ == '__main__':
         for state, action in resulting_plan:
             print('\t',state)
             print(action)
-
-
-
-    
