@@ -144,7 +144,7 @@ def search(graph, state, is_goal, limit, heuristic):
                 #print(node)
                 #print(heur)
                 if(heur >= 0):
-                    queue.append((node[1],heur,newCost))
+                    queue.append((node[1],heur,newCost+heur))
             elif(newCost<visited[node[1]][1]):
                 visited[node[1]] = (current,newCost,node[0])   
             queue.sort(reverse=True,key=byVal)
@@ -186,8 +186,6 @@ def makePosIngred(goal,rules):
                         if (not(item2 in goal)):
                             goal[item2] = rule['Requires'][item2]
                             listGoal.append(item2)
-    print(goal)
-    print("\n\n")
     return goal
     
 
